@@ -30,17 +30,21 @@ public:
     Controller(Controller const& p_rhs) = delete;
     Controller& operator=(Controller const& p_rhs) = delete;
 
-    Segment newHeadConstitue();
+
 
     void receive(std::unique_ptr<Event> e) override;
 
 private:
+
     struct Segment
     {
         int x;
         int y;
         int ttl;
     };
+
+    void snakeMove();
+    bool outOfMap(Controller::Segment newHead);
 
     IPort& m_displayPort;
     IPort& m_foodPort;

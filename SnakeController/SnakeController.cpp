@@ -63,31 +63,15 @@ Controller::Controller(IPort& p_displayPort, IPort& p_foodPort, IPort& p_scorePo
     }
 }
 
+void Controller::snakeMove(){
+    Segment const& currentHead = m_segments.front();
 
-
-Segment newHeadConstitue(){
-   Segment newHead;
+        Segment newHead;
 
         newHead.x = currentHead.x + ((m_currentDirection & 0b01) ? (m_currentDirection & 0b10) ? 1 : -1 : 0);
         newHead.y = currentHead.y + (not (m_currentDirection & 0b01) ? (m_currentDirection & 0b10) ? 1 : -1 : 0);
         newHead.ttl = currentHead.ttl;
-
-    return newHead; 
-}
-
-void Controller::receive(std::unique_ptr<Event> e)
-{
-    try {
-        auto const& timerEvent = *dynamic_cast<EventT<TimeoutInd> const&>(*e);
-
-        Segment const& currentHead = m_segments.front();
-
-        Segment newHead = newHeadConstitue();
-/*
-        newHead.x = currentHead.x + ((m_currentDirection & 0b01) ? (m_currentDirection & 0b10) ? 1 : -1 : 0);
-        newHead.y = currentHead.y + (not (m_currentDirection & 0b01) ? (m_currentDirection & 0b10) ? 1 : -1 : 0);
-        newHead.ttl = currentHead.ttl;
-*/        
+        
         bool lost = false;
 
         for (auto segment : m_segments) {
@@ -102,9 +86,7 @@ void Controller::receive(std::unique_ptr<Event> e)
             if (std::make_pair(newHead.x, newHead.y) == m_foodPosition) {
                 m_scorePort.send(std::make_unique<EventT<ScoreInd>>());
                 m_foodPort.send(std::make_unique<EventT<FoodReq>>());
-            } else if (newHead.x < 0 or newHead.y < 0 or
-                       newHead.x >= m_mapDimension.first or
-                       newHead.y >= m_mapDimension.second) {
+            } else if (outOfMap(newHead)) {
                 m_scorePort.send(std::make_unique<EventT<LooseInd>>());
                 lost = true;
             } else {
@@ -137,6 +119,20 @@ void Controller::receive(std::unique_ptr<Event> e)
                     [](auto const& segment){ return not (segment.ttl > 0); }),
                 m_segments.end());
         }
+}
+
+bool Controller::outOfMap(Controller::Segment newHead){
+    return (newHead.x < 0 or newHead.y < 0 or
+                       newHead.x >= m_mapDimension.first or
+                       newHead.y >= m_mapDimension.second);
+}
+
+void Controller::receive(std::unique_ptr<Event> e)
+{
+    try {
+        auto const& timerEvent = *dynamic_cast<EventT<TimeoutInd> const&>(*e);
+        snakeMove();        
+    
     } catch (std::bad_cast&) {
         try {
             auto direction = dynamic_cast<EventT<DirectionInd> const&>(*e)->direction;
@@ -173,7 +169,7 @@ void Controller::receive(std::unique_ptr<Event> e)
                 }
 
                 m_foodPosition = std::make_pair(receivedFood.x, receivedFood.y);
-
+               
             } catch (std::bad_cast&) {
                 try {
                     auto requestedFood = *dynamic_cast<EventT<FoodResp> const&>(*e);
