@@ -1,0 +1,1 @@
+/usr/bin/c++ -rdynamic CMakeFiles/SnakeController_UT.dir/Tests/SnakeControllerTestSuite.cpp.o -o SnakeController_UT  libSnakeController.a ../lib/libgtest_main.a ../lib/libgmock.a ../lib/libgtest.a 
